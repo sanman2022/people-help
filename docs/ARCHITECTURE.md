@@ -63,6 +63,70 @@ HR teams at scale face a fragmented tooling landscape: employees navigate multip
     └──────────────────────────────────────────────────────────┘
 ```
 
+<details>
+<summary><strong>Interactive diagram</strong> (click to expand — GitHub renders this as a live flowchart)</summary>
+
+```mermaid
+flowchart TB
+    subgraph frontend ["Browser (Tailwind CSS)"]
+        Concierge["People Concierge<br/>(AI Agent Chat)"]
+        KB["Knowledge Base<br/>(RAG + Citations)"]
+        Workflows["Workflows & Cases<br/>(Checklists + Approvals)"]
+        Hiring["Hiring Intelligence<br/>(Candidate Matching)"]
+        Analytics["Analytics Dashboard<br/>(Metrics + Charts)"]
+    end
+
+    subgraph app ["FastAPI Application"]
+        Middleware["Middleware Stack<br/>Logging → CORS → Rate Limit → Auth"]
+
+        subgraph agent ["LangChain Agent"]
+            AgentCore["Agent Loop<br/>(max 5 iterations)"]
+            Memory["Conversation Memory<br/>(Supabase-backed)"]
+            HumanLoop["Human-in-the-Loop<br/>Confirmation"]
+        end
+
+        subgraph tools ["Tool Layer (15 tools)"]
+            T_Knowledge["search_knowledge"]
+            T_Cases["create_case · check_case_status<br/>list_open_cases"]
+            T_Workflows["start_onboarding<br/>check_workflow_status"]
+            T_Approvals["list_pending_approvals<br/>approve_step · reject_step"]
+            T_Workday["lookup_employee<br/>get_org_chart"]
+            T_Greenhouse["list_open_reqs<br/>get_req_detail"]
+            T_Intelligence["match_candidates<br/>analyze_candidate"]
+        end
+
+        RAG["RAG Pipeline<br/>embed → search → cite"]
+    end
+
+    subgraph data ["Supabase (PostgreSQL + pgvector)"]
+        DB["13 Tables<br/>documents · chunks · cases<br/>workflow_runs · approvals<br/>conversations · events · connectors"]
+        Vectors["pgvector<br/>Cosine Similarity Search"]
+    end
+
+    subgraph external ["External APIs"]
+        OpenAI["OpenAI API<br/>gpt-4o-mini · text-embedding-3-small"]
+        MockWorkday["Mock Workday<br/>(10 employees)"]
+        MockGreenhouse["Mock Greenhouse<br/>(4 reqs · 7 candidates)"]
+    end
+
+    frontend --> Middleware
+    Middleware --> agent
+    Middleware --> RAG
+    AgentCore --> tools
+    AgentCore --> Memory
+    T_Knowledge --> RAG
+    RAG --> Vectors
+    RAG --> OpenAI
+    tools --> DB
+    T_Workday --> MockWorkday
+    T_Greenhouse --> MockGreenhouse
+    T_Intelligence --> OpenAI
+    AgentCore --> OpenAI
+    Memory --> DB
+```
+
+</details>
+
 ---
 
 ## 3. Agent Design
