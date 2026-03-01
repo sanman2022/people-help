@@ -92,8 +92,13 @@ async function sendMessage() {
 function renderLinks(text) {
   // Escape HTML first, then convert markdown links to <a> tags
   const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return escaped.replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/)[^\s)]+)\)/g,
-    '<a href="$2" class="text-brand-600 underline hover:text-brand-800">$1</a>');
+  return escaped.replace(/\[([^\]]+)\]\(([^\s)]+)\)/g, function(match, label, url) {
+    // Ensure internal paths start with / (LLM sometimes drops it)
+    if (!url.startsWith('http') && !url.startsWith('/')) {
+      url = '/' + url;
+    }
+    return '<a href="' + url + '" class="text-brand-600 underline hover:text-brand-800">' + label + '</a>';
+  });
 }
 
 function appendMessage(role, text) {

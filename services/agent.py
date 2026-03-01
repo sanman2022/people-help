@@ -343,6 +343,8 @@ Important rules:
    the workflow to the next step" or "This will reject the entire workflow run").
 7. For candidate matching, use match_candidates first to get the ranked list,
    then analyze_candidate for a deep-dive on a specific person.
+8. When tool results contain markdown links like [text](/path), include them
+   exactly as-is in your response so they render as clickable links.
 """
 
 # ---------------------------------------------------------------------------

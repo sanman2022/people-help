@@ -8,12 +8,12 @@ An AI-powered **Employee Experience platform** — one interface where employees
 
 | Feature | Description |
 |---------|-------------|
-| **Agentic Chat** | Multi-turn chat powered by a LangChain agent with 15 tools. The agent searches knowledge, creates cases, starts workflows, manages approvals, looks up employees, checks requisitions, ranks candidates, and analyzes candidate fit — asking for confirmation before taking actions. |
-| **Knowledge Copilot** | RAG pipeline over 7 HR policy docs (PTO, expenses, onboarding, hiring policy, interview guidelines, compensation, performance reviews). Embeddings via `text-embedding-3-small`, vector search via pgvector, cited answers with feedback. |
+| **People Concierge** | AI agent (LangChain, 15 tools) that takes actions — looks up employees, starts onboarding, creates cases, checks requisitions, ranks candidates. Multi-turn chat with conversation memory and human-in-the-loop confirmation. |
+| **Knowledge Base** | RAG pipeline over 7 HR policy docs (PTO, expenses, onboarding, hiring, interviews, compensation, performance). Embeddings via `text-embedding-3-small`, vector search via pgvector, cited answers with feedback. |
 | **Case Management** | Employees describe an issue → agent creates a support case with subject/description. Cases are tracked with open/closed status. |
 | **Onboarding Workflows** | Offer accepted → onboarding checklist + approval pipeline created. Interactive checkboxes with progress tracking. |
 | **Approval Workflows** | Multi-step approvals with role-based routing (manager → HR → IT). Approve/reject via UI or chat agent. Reject with notes. |
-| **Candidate Intelligence** | AI-powered candidate-to-requisition matching. Embedding similarity scores rank candidates, LLM analyzes strengths/gaps/recommendation. Hiring manager dashboard with visual match bars and deep-dive analysis modal. |
+| **Candidate Intelligence** | AI-powered candidate-to-requisition matching. Embedding similarity scores rank candidates, LLM analyzes strengths/gaps/recommendation. Hiring manager dashboard with visual match bars and deep-dive analysis. |
 | **Mock Integrations** | Mock Workday (employee lookup, org chart) and Greenhouse (requisitions, candidates with enriched profiles). Webhook receiver logs events. Integration health dashboard shows connector status. |
 | **Analytics Dashboard** | Metric cards + Chart.js doughnut charts for feedback sentiment, case status, question volume, and event counts. |
 | **Event Log** | Audit trail of system events (case created, workflow started, approval decisions, webhooks) with typed payloads. |
@@ -40,14 +40,19 @@ Browser → FastAPI → LangChain Agent → Tools (15)
 - Conversation memory — persisted in Supabase, loaded per session
 - Interactive UI — Tailwind CSS, Chart.js, PATCH API for checklist toggling
 - Candidate Intelligence — embedding similarity scoring + LLM-as-judge for hiring decision support
-- Production-hardened — API key auth, per-IP rate limiting, Pydantic validation, structured logging, 50+ tests
+- Production-hardened — API key auth, per-IP rate limiting, Pydantic validation, structured logging, 84 tests
+
+**Future improvements:**
+- Migrate from LangChain `AgentExecutor` to **LangGraph** for production-grade state management, human-in-the-loop approvals, and parallel tool execution
+- Streaming responses for the People Concierge (SSE)
+- Real Workday / Greenhouse API connectors (replace mocks)
 
 ## Pages
 
 | Route | Page |
 |-------|------|
-| `/people-help` | Chat interface (main entry point) |
-| `/knowledge` | Knowledge base search + seed |
+| `/people-help` | People Concierge — AI agent (main entry point) |
+| `/knowledge` | Knowledge Base search with RAG + citations |
 | `/workflows` | Workflow runs list + simulate |
 | `/workflows/run/{id}` | Workflow detail with checklist + approval pipeline |
 | `/workflows/approvals` | Pending approvals dashboard |
@@ -85,7 +90,19 @@ Browser → FastAPI → LangChain Agent → Tools (15)
    ```
    Open http://127.0.0.1:8000/people-help
 
-5. **Seed knowledge base** (first run only) — Visit `/knowledge/seed` or `POST /knowledge/seed`. This ingests 7 HR policy docs (PTO, expenses, onboarding, hiring policy, interview guidelines, compensation, performance reviews).
+5. **Seed data** (first run only)
+   ```bash
+   npm run seed
+   ```
+   This ingests 7 HR policy docs into the knowledge base and creates 3 workflow definitions (onboarding, PTO, expense reimbursement).
+
+## Tests
+
+```bash
+npm test
+```
+
+84 tests across 6 test files covering API endpoints, integrations, RAG chunking, Pydantic models, middleware (auth + rate limiting), and candidate intelligence.
 
 ## Deploy on Render
 
@@ -93,7 +110,7 @@ Browser → FastAPI → LangChain Agent → Tools (15)
 2. Build: `pip install -r requirements.txt`
 3. Start: `uvicorn main:app --host 0.0.0.0 --port $PORT`
 4. Set env vars: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`
-5. Seed knowledge: `POST https://your-app.onrender.com/knowledge/seed`
+5. Seed: `POST https://your-app.onrender.com/knowledge/seed` and `POST https://your-app.onrender.com/workflows/definitions/seed`
 
 `render.yaml` is included for one-click deploys.
 
@@ -111,7 +128,7 @@ Browser → FastAPI → LangChain Agent → Tools (15)
 │   ├── rate_limit.py        # Per-IP rate limiting on LLM endpoints
 │   └── request_logging.py   # Structured request logging with request IDs
 ├── routers/
-│   ├── people_help.py       # Chat API + legacy form
+│   ├── people_help.py       # People Concierge chat API
 │   ├── knowledge.py         # RAG search + seed (7 HR docs) + feedback
 │   ├── workflows.py         # Workflow runs + checklist + approvals
 │   ├── integrations.py      # Mock Workday/Greenhouse + hiring dashboard + webhooks
@@ -126,7 +143,7 @@ Browser → FastAPI → LangChain Agent → Tools (15)
 │   ├── integrations.py      # Mock Workday/Greenhouse data + webhooks
 │   ├── workflows.py         # Shared onboarding logic
 │   └── supabase_client.py   # Supabase singleton
-├── tests/                   # Pytest test suite (50+ tests)
+├── tests/                   # Pytest test suite (84 tests)
 │   ├── test_api.py          # API endpoint tests
 │   ├── test_candidate_intelligence.py  # Candidate matching tests
 │   ├── test_integrations.py # Mock Workday/Greenhouse tests
@@ -137,7 +154,7 @@ Browser → FastAPI → LangChain Agent → Tools (15)
 │   └── hiring.html          # Hiring Intelligence dashboard
 ├── db/schema.sql            # Full database schema (13 tables)
 └── docs/
-    └── PEOPLE_HELP_ENHANCEMENT_PLAN.md  # 7-phase roadmap (all complete)
+    └── PEOPLE_HELP_ENHANCEMENT_PLAN.md  # 8-phase roadmap (all complete)
 ```
 
 ## Enhancement plan
@@ -152,8 +169,15 @@ See [`docs/PEOPLE_HELP_ENHANCEMENT_PLAN.md`](docs/PEOPLE_HELP_ENHANCEMENT_PLAN.m
 | 3 — Modern UI | Done | Tailwind CSS, Chart.js, interactive checklists |
 | 4 — Approval workflows | Done | Multi-step approvals, role-based routing, agent tools |
 | 5 — Mock integrations | Done | Workday/Greenhouse mocks, webhooks, health dashboard |
-| 6 — Hardening | Done | API key auth, Pydantic validation, rate limiting, logging, 40+ tests |
+| 6 — Hardening | Done | API key auth, Pydantic validation, rate limiting, logging, 84 tests |
 | 7 — Candidate Intelligence | Done | AI candidate matching (embeddings + LLM), hiring dashboard, enriched mock data, 7 HR seed docs |
+
+**What's next (production roadmap):**
+- **LangGraph migration** — Replace LangChain `AgentExecutor` with LangGraph for explicit state management, human-in-the-loop as graph nodes, and parallel tool execution
+- **Streaming** — SSE streaming for People Concierge responses
+- **Real integrations** — Workday, Greenhouse, Slack, Okta via OAuth connectors
+- **RBAC** — Role-based access control (employee vs manager vs HR admin)
+- **Deployment** — Render or Vercel with CI/CD pipeline
 
 ## Park and resume
 

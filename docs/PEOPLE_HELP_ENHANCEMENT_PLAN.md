@@ -12,9 +12,9 @@
 **What exists**
 
 - **6 use cases**: People Help Front Door, Knowledge Copilot (RAG), Offer→Day1 orchestration, Approval workflows, Integration lookups, Candidate Intelligence
-- **Chat interface**: Multi-turn agentic chat (LangChain) with 15 tools for knowledge, cases, workflows, approvals, Workday, Greenhouse, candidate matching & analysis
+- **People Concierge**: Multi-turn agentic chat (LangChain) with 15 tools for knowledge, cases, workflows, approvals, Workday, Greenhouse, candidate matching & analysis
 - **Stack**: FastAPI, Supabase (Postgres + pgvector), OpenAI, LangChain, Render
-- **Pages**: People Help (chat), Knowledge, Workflows, Approvals, Hiring, Integrations, Events, Analytics — all with Tailwind CSS
+- **Pages**: People Concierge, Knowledge Base, Workflows, Approvals, Hiring Intelligence, Integrations, Events, Analytics — all with Tailwind CSS
 - **AI**: RAG (embeddings + vector search) + LangChain agent with 15 tools + candidate-JD embedding matching + LLM analysis
 - **Backend**: Async OpenAI, error handling, logging, approval engine, mock APIs, webhook receiver, auth, rate limiting, Pydantic validation
 - **UI**: Tailwind CSS via CDN, Chart.js analytics, interactive checklists, approval pipeline UI, integration health dashboard, hiring intelligence dashboard
@@ -433,7 +433,7 @@ CREATE TABLE connectors (
 | 3 | Modern UI | Done | Tailwind, interactive checklists, charts, toast notifications |
 | 4 | Approval workflows | Done | Configurable multi-step approvals, role-based routing, agent tools |
 | 5 | Mock integrations | Done | Workday/Greenhouse mocks, webhooks, agent tools, health dashboard |
-| 6 | Hardening | Done | API key auth, Pydantic validation, rate limiting, structured logging, 40+ tests |
+| 6 | Hardening | Done | API key auth, Pydantic validation, rate limiting, structured logging, 84 tests |
 | 7 | Candidate Intelligence | Done | AI candidate matching, scoring, analysis, hiring dashboard |
 
 **Total**: All 8 phases complete.
@@ -448,10 +448,25 @@ CREATE TABLE connectors (
 | App | FastAPI |
 | DB + vectors | Supabase Cloud (Postgres + pgvector) |
 | LLM + embeddings | OpenAI API |
-| Agent framework | LangChain (Phase 2) |
+| Agent framework | LangChain (Phase 2) — planned migration to LangGraph |
 | UI | Jinja2 + Tailwind CSS (Phase 3) |
 
 ---
+
+## Production roadmap
+
+If taking People Help from MVP to production, these are the next priorities:
+
+| Priority | Initiative | Why |
+|----------|-----------|-----|
+| **P0** | **LangGraph migration** | Replace LangChain `AgentExecutor` with LangGraph for explicit state machine control, human-in-the-loop as graph nodes, parallel tool execution, and better error recovery. Critical for production reliability. |
+| **P0** | **Authentication & RBAC** | SSO integration (Okta/Azure AD), role-based access (employee, manager, HR admin, IT). Gate approval actions and admin views. |
+| **P1** | **Real integrations** | Replace mock Workday/Greenhouse with OAuth-based connectors. Add Slack (notifications), Okta (identity), and email (case updates). |
+| **P1** | **Streaming responses** | SSE streaming for People Concierge. Reduces perceived latency from 3-5s to instant. |
+| **P2** | **Observability** | LangSmith or LangFuse for agent tracing. Datadog/New Relic for APM. Structured metrics for tool usage, latency, error rates. |
+| **P2** | **Knowledge management** | Admin UI for uploading/managing policy docs. Versioning, approval workflow for content changes. Chunking strategy optimization. |
+| **P3** | **Multi-tenant** | Org-scoped data, tenant isolation, per-org config for workflows and integrations. |
+| **P3** | **Mobile** | Responsive design or dedicated mobile experience for on-the-go HR queries. |
 
 ## Park and resume
 
