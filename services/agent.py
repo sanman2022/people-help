@@ -71,7 +71,7 @@ def start_onboarding(trigger: str) -> str:
     Always confirm with the user BEFORE calling this tool."""
     run_id = create_onboarding_run(trigger=trigger)
     if run_id:
-        return f"Onboarding workflow started. Run ID: {run_id}. You can track progress at /workflows/run/{run_id}"
+        return f"Onboarding workflow started for {trigger}. Track progress: [View Workflow](/workflows/run/{run_id})"
     return "Sorry, I couldn't start the onboarding workflow right now. Please try again."
 
 
