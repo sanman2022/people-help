@@ -36,3 +36,6 @@ nul
 
 # Claude Code
 .claude/
+
+# Internal working docs
+docs/PEOPLE_HELP_ENHANCEMENT_PLAN.md

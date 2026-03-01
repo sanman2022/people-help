@@ -154,6 +154,5 @@ npm test
 │   ├── schema.sql           # Full database schema (13 tables)
 │   └── seed.py              # Seed script (clean + populate demo data)
 └── docs/
-    ├── ARCHITECTURE.md       # Design document
-    └── PEOPLE_HELP_ENHANCEMENT_PLAN.md  # Build phases (all complete)
+    └── ARCHITECTURE.md       # Design document
 ```
