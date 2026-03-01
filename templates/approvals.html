@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Approvals{% endblock %}
+{% block nav_workflows %}text-brand-600 bg-brand-50{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Pending Approvals</h1>
+    <p class="text-sm text-gray-500 mt-1">Review and act on workflow approval requests.</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="/workflows/definitions/seed"
+       class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+      Seed definitions
+    </a>
+    <a href="/workflows"
+       class="text-sm text-brand-600 hover:underline px-4 py-2">
+      &larr; Workflows
+    </a>
+  </div>
+</div>
+
+<!-- Pending approvals -->
+{% if pending %}
+<div class="space-y-3">
+  {% for a in pending %}
+  {% set run = a.get("workflow_runs") or {} %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5" id="approval-{{ a.id }}">
+    <div class="flex items-start justify-between">
+      <div class="flex-1">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+            pending
+          </span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+            {{ a.approver_role }}
+          </span>
+        </div>
+        <h3 class="text-base font-semibold text-gray-900 mt-1">
+          {{ a.step_name | replace("_", " ") | title }}
+        </h3>
+        <p class="text-sm text-gray-500 mt-0.5">
+          Workflow: <span class="font-medium">{{ run.get("workflow_type", "—") }}</span>
+          &middot; Run:
+          <a href="/workflows/run/{{ a.workflow_run_id }}" class="text-brand-600 hover:underline font-mono">
+            {{ a.workflow_run_id[:8] if a.workflow_run_id else "—" }}
+          </a>
+        </p>
+      </div>
+      <div class="flex gap-2 ml-4">
+        <button onclick="decideApproval('{{ a.id }}', 'approved')"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          Approve
+        </button>
+        <button onclick="showRejectModal('{{ a.id }}')"
+                class="bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-red-200">
+          Reject
+        </button>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+  <p class="text-gray-400 text-sm">No pending approvals. All caught up!</p>
+  <p class="text-gray-400 text-xs mt-1">Approvals are created when workflows are started (e.g. onboarding).</p>
+</div>
+{% endif %}
+
+<!-- Workflow definitions -->
+{% if definitions %}
+<div class="mt-8">
+  <h2 class="text-lg font-semibold text-gray-900 mb-3">Workflow Definitions</h2>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for d in definitions %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <h3 class="font-semibold text-gray-900 text-sm">{{ d.name | replace("_", " ") | title }}</h3>
+      <p class="text-xs text-gray-500 mt-0.5">{{ d.description or "" }}</p>
+      {% set steps = d.get("definition", {}).get("steps", []) %}
+      {% if steps %}
+      <div class="mt-3 space-y-1">
+        {% for s in steps %}
+        <div class="flex items-center gap-2 text-xs text-gray-600">
+          <span class="w-4 h-4 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center text-[10px] font-bold">
+            {{ s.order }}
+          </span>
+          <span>{{ s.label }}</span>
+          <span class="text-gray-400">({{ s.approver_role }})</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Reject modal -->
+<div id="reject-modal" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center">
+  <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4">
+    <h3 class="text-lg font-semibold text-gray-900 mb-2">Reject approval</h3>
+    <textarea id="reject-notes" rows="3" placeholder="Reason for rejection (optional)"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500"></textarea>
+    <div class="flex justify-end gap-2 mt-4">
+      <button onclick="hideRejectModal()"
+              class="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+        Cancel
+      </button>
+      <button onclick="confirmReject()"
+              class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+        Reject
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+var rejectApprovalId = null;
+
+function showRejectModal(approvalId) {
+  rejectApprovalId = approvalId;
+  document.getElementById('reject-notes').value = '';
+  var modal = document.getElementById('reject-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+}
+
+function hideRejectModal() {
+  var modal = document.getElementById('reject-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  rejectApprovalId = null;
+}
+
+function confirmReject() {
+  var notes = document.getElementById('reject-notes').value.trim();
+  if (rejectApprovalId) {
+    decideApproval(rejectApprovalId, 'rejected', notes);
+    hideRejectModal();
+  }
+}
+
+async function decideApproval(approvalId, action, notes) {
+  try {
+    var res = await fetch('/workflows/approvals/' + approvalId + '/decide', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: action, notes: notes || null}),
+    });
+    if (!res.ok) {
+      var err = await res.json();
+      throw new Error(err.error || 'Failed');
+    }
+    var card = document.getElementById('approval-' + approvalId);
+    if (card) {
+      card.style.transition = 'opacity 0.3s, transform 0.3s';
+      card.style.opacity = '0';
+      card.style.transform = 'translateX(2rem)';
+      setTimeout(function() { card.remove(); }, 300);
+    }
+    showToast(action === 'approved' ? 'Approved successfully' : 'Rejected', action === 'approved' ? 'success' : 'info');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}Hiring Intelligence{% endblock %}
+{% block nav_hiring %}text-brand-600 bg-brand-50{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Hiring Intelligence</h1>
+    <p class="text-sm text-gray-500 mt-1">AI-powered candidate matching and analysis for open requisitions.</p>
+  </div>
+</div>
+
+<!-- Open Requisitions -->
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
+  {% for req in reqs %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 cursor-pointer hover:border-brand-300 hover:shadow transition-all"
+       onclick="selectReq('{{ req.req_id }}', '{{ req.title }}')">
+    <div class="flex items-start justify-between mb-2">
+      <h3 class="text-sm font-semibold text-gray-900">{{ req.title }}</h3>
+      <span class="text-xs font-mono text-gray-400">{{ req.req_id }}</span>
+    </div>
+    <p class="text-xs text-gray-500 mb-3 line-clamp-2">{{ req.description[:120] }}...</p>
+    <div class="flex flex-wrap gap-1 mb-3">
+      {% for skill in req.requirements[:4] %}
+      <span class="px-2 py-0.5 bg-brand-50 text-brand-700 text-xs rounded-full">{{ skill }}</span>
+      {% endfor %}
+      {% if req.requirements|length > 4 %}
+      <span class="px-2 py-0.5 bg-gray-100 text-gray-500 text-xs rounded-full">+{{ req.requirements|length - 4 }}</span>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-between text-xs text-gray-400">
+      <span>{{ req.department }} · {{ req.location }}</span>
+      <span>{{ req.candidates }} candidates</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Match Results Panel (hidden until a req is selected) -->
+<div id="match-panel" class="hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-lg font-semibold text-gray-900">
+      Candidate Rankings — <span id="selected-req-title" class="text-brand-600"></span>
+    </h2>
+    <div id="match-loading" class="hidden flex items-center gap-2 text-sm text-gray-400">
+      <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+      Scoring candidates with AI...
+    </div>
+  </div>
+  <div id="match-results" class="space-y-3"></div>
+</div>
+
+<!-- Analysis Modal -->
+<div id="analysis-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-semibold text-gray-900" id="analysis-title">Candidate Analysis</h3>
+      <button onclick="closeAnalysis()" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+    </div>
+    <div id="analysis-loading" class="flex items-center gap-2 text-sm text-gray-400 py-8 justify-center">
+      <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+      Analyzing candidate with AI...
+    </div>
+    <div id="analysis-content" class="hidden"></div>
+  </div>
+</div>
+
+<script>
+var currentReqId = null;
+
+async function selectReq(reqId, title) {
+  currentReqId = reqId;
+  document.getElementById('selected-req-title').textContent = title;
+  document.getElementById('match-panel').classList.remove('hidden');
+  document.getElementById('match-results').innerHTML = '';
+  document.getElementById('match-loading').classList.remove('hidden');
+
+  try {
+    var res = await fetch('/integrations/hiring/match/' + reqId);
+    var data = await res.json();
+    document.getElementById('match-loading').classList.add('hidden');
+
+    if (data.error) {
+      document.getElementById('match-results').innerHTML =
+        '<p class="text-red-600 text-sm">' + data.error + '</p>';
+      return;
+    }
+
+    var html = '';
+    data.ranked_candidates.forEach(function(entry, i) {
+      var c = entry.candidate;
+      var pct = entry.match_pct;
+      var barColor = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-400';
+      var badgeColor = pct >= 70 ? 'bg-green-100 text-green-800' : pct >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800';
+
+      html += '<div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5">';
+      html += '  <div class="flex items-start justify-between mb-3">';
+      html += '    <div>';
+      html += '      <div class="flex items-center gap-2">';
+      html += '        <span class="text-lg font-semibold text-gray-900">#' + (i + 1) + '</span>';
+      html += '        <h4 class="text-base font-semibold text-gray-900">' + c.name + '</h4>';
+      html += '        <span class="px-2 py-0.5 rounded-full text-xs font-medium ' + badgeColor + '">' + pct + '% match</span>';
+      html += '      </div>';
+      html += '      <p class="text-sm text-gray-500 mt-0.5">' + (c.current_title || '') + ' at ' + (c.current_company || '') + ' · ' + (c.experience_years || '?') + ' years</p>';
+      html += '    </div>';
+      html += '    <div class="flex items-center gap-2">';
+      html += '      <span class="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">' + c.stage + '</span>';
+      html += '      <button onclick="analyzeCandidate(\'' + currentReqId + '\', \'' + c.candidate_id + '\', \'' + c.name.replace("'", "\\'") + '\')"';
+      html += '              class="px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-medium rounded-lg transition-colors">Analyze</button>';
+      html += '    </div>';
+      html += '  </div>';
+
+      // Match bar
+      html += '  <div class="w-full bg-gray-100 rounded-full h-2 mb-3">';
+      html += '    <div class="' + barColor + ' h-2 rounded-full transition-all" style="width: ' + pct + '%"></div>';
+      html += '  </div>';
+
+      // Skills
+      html += '  <div class="flex flex-wrap gap-1 mb-2">';
+      (c.skills || []).slice(0, 8).forEach(function(s) {
+        html += '<span class="px-2 py-0.5 bg-gray-50 text-gray-600 text-xs rounded-full border border-gray-200">' + s + '</span>';
+      });
+      html += '  </div>';
+
+      // Resume summary
+      html += '  <p class="text-xs text-gray-500 mt-2">' + (c.resume_summary || '').substring(0, 200) + '...</p>';
+      html += '</div>';
+    });
+
+    document.getElementById('match-results').innerHTML = html;
+  } catch (err) {
+    document.getElementById('match-loading').classList.add('hidden');
+    document.getElementById('match-results').innerHTML =
+      '<p class="text-red-600 text-sm">Failed to rank candidates: ' + err.message + '</p>';
+  }
+
+  // Scroll to results
+  document.getElementById('match-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function analyzeCandidate(reqId, candidateId, name) {
+  document.getElementById('analysis-modal').classList.remove('hidden');
+  document.getElementById('analysis-title').textContent = 'Analysis: ' + name;
+  document.getElementById('analysis-loading').classList.remove('hidden');
+  document.getElementById('analysis-content').classList.add('hidden');
+
+  try {
+    var res = await fetch('/integrations/hiring/analyze/' + reqId + '/' + candidateId);
+    var data = await res.json();
+    document.getElementById('analysis-loading').classList.add('hidden');
+    document.getElementById('analysis-content').classList.remove('hidden');
+
+    if (data.error) {
+      document.getElementById('analysis-content').innerHTML =
+        '<p class="text-red-600">' + data.error + '</p>';
+      return;
+    }
+
+    var a = data.analysis;
+    var html = '';
+
+    // Score
+    var scorePct = a.match_score || 0;
+    var scoreColor = scorePct >= 70 ? 'text-green-600' : scorePct >= 40 ? 'text-yellow-600' : 'text-red-600';
+    html += '<div class="text-center mb-4">';
+    html += '  <span class="text-4xl font-bold ' + scoreColor + '">' + scorePct + '</span>';
+    html += '  <span class="text-lg text-gray-400">/ 100</span>';
+    html += '  <p class="text-sm text-gray-500 mt-1">' + (a.recommendation || '') + '</p>';
+    html += '</div>';
+
+    // Strengths
+    html += '<div class="mb-4">';
+    html += '  <h4 class="text-sm font-semibold text-green-700 mb-2">✓ Strengths</h4>';
+    html += '  <ul class="space-y-1">';
+    (a.strengths || []).forEach(function(s) {
+      html += '<li class="text-sm text-gray-700 flex items-start gap-2"><span class="text-green-500 mt-0.5">•</span>' + s + '</li>';
+    });
+    html += '  </ul>';
+    html += '</div>';
+
+    // Gaps
+    html += '<div class="mb-4">';
+    html += '  <h4 class="text-sm font-semibold text-red-700 mb-2">✗ Gaps</h4>';
+    html += '  <ul class="space-y-1">';
+    (a.gaps || []).forEach(function(g) {
+      html += '<li class="text-sm text-gray-700 flex items-start gap-2"><span class="text-red-400 mt-0.5">•</span>' + g + '</li>';
+    });
+    html += '  </ul>';
+    html += '</div>';
+
+    // Embedding score
+    html += '<div class="pt-3 border-t border-gray-100 text-xs text-gray-400">';
+    html += '  Embedding similarity: ' + Math.round(data.embedding_similarity * 100) + '%';
+    html += '</div>';
+
+    document.getElementById('analysis-content').innerHTML = html;
+  } catch (err) {
+    document.getElementById('analysis-loading').classList.add('hidden');
+    document.getElementById('analysis-content').classList.remove('hidden');
+    document.getElementById('analysis-content').innerHTML =
+      '<p class="text-red-600">Analysis failed: ' + err.message + '</p>';
+  }
+}
+
+function closeAnalysis() {
+  document.getElementById('analysis-modal').classList.add('hidden');
+}
+
+// Close modal on backdrop click
+document.getElementById('analysis-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAnalysis();
+});
+</script>
+{% endblock %}

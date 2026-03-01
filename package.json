@@ -1,0 +1,15 @@
+{
+  "name": "people-help",
+  "version": "1.0.0",
+  "description": "People Help — AI-powered Employee Experience platform",
+  "scripts": {
+    "start": "uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "dev": "uvicorn main:app --reload --host 127.0.0.1 --port 8000",
+    "test": "pytest",
+    "seed": "python -c \"import httpx; c=httpx.Client(timeout=120); print('Seeding knowledge...'); r=c.post('http://127.0.0.1:8000/knowledge/seed'); print(r.json()); print('Seeding workflows...'); r2=c.post('http://127.0.0.1:8000/workflows/definitions/seed'); print(r2.json()); print('Done!')\""
+  },
+  "private": true,
+  "devDependencies": {
+    "supabase": "^2.76.15"
+  }
+}

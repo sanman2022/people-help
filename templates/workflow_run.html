@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Onboarding – {{ run_id[:8] }}{% endblock %}
+{% block nav_workflows %}text-brand-600 bg-brand-50{% endblock %}
+{% block content %}
+<div class="max-w-xl">
+  <a href="/workflows" class="text-sm text-brand-600 hover:underline mb-3 inline-block">&larr; Back to Workflows</a>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-xl font-bold text-gray-900">Onboarding Checklist</h1>
+        <p class="text-sm text-gray-500 mt-0.5">Run <span class="font-mono">{{ run_id[:8] }}</span></p>
+      </div>
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+        {% if status == 'in_progress' %}bg-blue-100 text-blue-800{% elif status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+        {{ status }}
+      </span>
+    </div>
+
+    {% if checklist %}
+    <ul class="space-y-2">
+      {% for item in checklist %}
+      <li class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+        <input type="checkbox" id="check-{{ item.id }}"
+               {% if item.done %}checked{% endif %}
+               onchange="toggleItem('{{ item.id }}', this.checked)"
+               class="w-4 h-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer">
+        <label for="check-{{ item.id }}"
+               class="text-sm cursor-pointer select-none {% if item.done %}text-gray-400 line-through{% else %}text-gray-800{% endif %}"
+               id="label-{{ item.id }}">
+          {{ item.label }}
+        </label>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <!-- Progress bar -->
+    {% set done_count = checklist | selectattr('done') | list | length %}
+    {% set total = checklist | length %}
+    <div class="mt-5 pt-4 border-t border-gray-100">
+      <div class="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+        <span id="progress-text">{{ done_count }} of {{ total }} completed</span>
+        <span id="progress-pct">{{ ((done_count / total) * 100) | int if total > 0 else 0 }}%</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div id="progress-bar" class="bg-brand-600 h-2 rounded-full transition-all duration-300"
+             style="width: {{ ((done_count / total) * 100) | int if total > 0 else 0 }}%"></div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 py-4 text-center">No checklist items.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Approval steps -->
+{% if approvals %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mt-4">
+  <h2 class="text-base font-semibold text-gray-900 mb-3">Approval Pipeline</h2>
+  <div class="space-y-2">
+    {% for a in approvals %}
+    <div class="flex items-center gap-3 p-3 rounded-lg border
+      {% if a.status == 'approved' %}border-green-200 bg-green-50
+      {% elif a.status == 'rejected' %}border-red-200 bg-red-50
+      {% else %}border-gray-200 bg-gray-50{% endif %}">
+      <!-- Step number -->
+      <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+        {% if a.status == 'approved' %}bg-green-600 text-white
+        {% elif a.status == 'rejected' %}bg-red-600 text-white
+        {% else %}bg-gray-300 text-gray-600{% endif %}">
+        {% if a.status == 'approved' %}&#10003;{% elif a.status == 'rejected' %}&#10007;{% else %}{{ a.step_order }}{% endif %}
+      </span>
+      <!-- Step info -->
+      <div class="flex-1">
+        <span class="text-sm font-medium text-gray-900">{{ a.step_name | replace("_", " ") | title }}</span>
+        <span class="text-xs text-gray-500 ml-2">({{ a.approver_role }})</span>
+        {% if a.decided_by %}
+        <span class="text-xs text-gray-400 ml-1">— by {{ a.decided_by }}</span>
+        {% endif %}
+        {% if a.notes %}
+        <p class="text-xs text-gray-500 mt-0.5">{{ a.notes }}</p>
+        {% endif %}
+      </div>
+      <!-- Status badge -->
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+        {% if a.status == 'approved' %}bg-green-100 text-green-800
+        {% elif a.status == 'rejected' %}bg-red-100 text-red-800
+        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+        {{ a.status }}
+      </span>
+      <!-- Action buttons for pending -->
+      {% if a.status == 'pending' %}
+      <div class="flex gap-1">
+        <button onclick="decideApproval('{{ a.id }}', 'approved')"
+                class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-medium transition-colors">
+          Approve
+        </button>
+        <button onclick="decideApproval('{{ a.id }}', 'rejected')"
+                class="bg-red-50 hover:bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-medium transition-colors border border-red-200">
+          Reject
+        </button>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+var total = {{ checklist | length }};
+
+async function toggleItem(itemId, checked) {
+  var label = document.getElementById('label-' + itemId);
+  try {
+    var res = await fetch('/workflows/checklist/' + itemId, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({done: checked}),
+    });
+    if (!res.ok) throw new Error('Failed');
+
+    if (checked) {
+      label.classList.add('text-gray-400', 'line-through');
+      label.classList.remove('text-gray-800');
+    } else {
+      label.classList.remove('text-gray-400', 'line-through');
+      label.classList.add('text-gray-800');
+    }
+
+    var doneCount = document.querySelectorAll('input[type="checkbox"]:checked').length;
+    var pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+    document.getElementById('progress-text').textContent = doneCount + ' of ' + total + ' completed';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('progress-bar').style.width = pct + '%';
+
+    showToast(checked ? 'Task completed' : 'Task reopened');
+  } catch (err) {
+    document.getElementById('check-' + itemId).checked = !checked;
+    showToast('Failed to update', 'error');
+  }
+}
+
+async function decideApproval(approvalId, action) {
+  try {
+    var res = await fetch('/workflows/approvals/' + approvalId + '/decide', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: action}),
+    });
+    if (!res.ok) {
+      var err = await res.json();
+      throw new Error(err.error || 'Failed');
+    }
+    showToast(action === 'approved' ? 'Approved' : 'Rejected', action === 'approved' ? 'success' : 'info');
+    setTimeout(function() { location.reload(); }, 500);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+</script>
+{% endblock %}

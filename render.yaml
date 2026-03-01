@@ -1,0 +1,11 @@
+# Render Blueprint - People Help
+# Deploy: connect repo, add env vars (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY), deploy.
+services:
+  - type: web
+    name: people-help
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"

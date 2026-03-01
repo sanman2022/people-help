@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Integrations{% endblock %}
+{% block nav_integrations %}text-brand-600 bg-brand-50{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Integrations</h1>
+    <p class="text-sm text-gray-500 mt-1">Connected systems and health status.</p>
+  </div>
+  <button onclick="sendTestWebhook()"
+          class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+    Send test webhook
+  </button>
+</div>
+
+<!-- Connector cards -->
+<div class="grid gap-4 sm:grid-cols-2">
+  {% for c in connectors %}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+    <div class="flex items-start justify-between">
+      <div>
+        <h3 class="text-base font-semibold text-gray-900">{{ c.label or c.name }}</h3>
+        <p class="text-xs text-gray-500 mt-0.5">Type: {{ c.type or "—" }}</p>
+      </div>
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+        {% if c.status == 'connected' %}bg-green-100 text-green-800
+        {% elif c.status == 'error' %}bg-red-100 text-red-800
+        {% else %}bg-gray-100 text-gray-500{% endif %}">
+        {% if c.status == 'connected' %}
+        <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+        {% elif c.status == 'error' %}
+        <span class="w-1.5 h-1.5 rounded-full bg-red-500 mr-1.5"></span>
+        {% else %}
+        <span class="w-1.5 h-1.5 rounded-full bg-gray-400 mr-1.5"></span>
+        {% endif %}
+        {{ c.status | replace("_", " ") }}
+      </span>
+    </div>
+    {% if c.last_event_at %}
+    <p class="text-xs text-gray-400 mt-3">Last event: {{ c.last_event_at[:19] | replace("T", " ") }}</p>
+    {% else %}
+    <p class="text-xs text-gray-400 mt-3">No events received yet</p>
+    {% endif %}
+
+    {% if c.name == 'workday' %}
+    <div class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+      <a href="/integrations/workday/employees?q=alice" target="_blank"
+         class="text-xs text-brand-600 hover:underline">Test lookup</a>
+      <a href="/integrations/workday/org-chart/WD-1002" target="_blank"
+         class="text-xs text-brand-600 hover:underline">Test org chart</a>
+    </div>
+    {% elif c.name == 'greenhouse' %}
+    <div class="mt-3 pt-3 border-t border-gray-100 flex gap-2">
+      <a href="/integrations/greenhouse/requisitions?status=open" target="_blank"
+         class="text-xs text-brand-600 hover:underline">Open reqs</a>
+      <a href="/integrations/greenhouse/requisitions/GH-401" target="_blank"
+         class="text-xs text-brand-600 hover:underline">Test req detail</a>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<!-- API reference -->
+<div class="mt-8">
+  <h2 class="text-lg font-semibold text-gray-900 mb-3">API Reference</h2>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
+          <th class="px-5 py-3">Method</th>
+          <th class="px-5 py-3">Endpoint</th>
+          <th class="px-5 py-3">Description</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-green-700">GET</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/workday/employees?q=</td><td class="px-5 py-2.5 text-gray-600">Search employees</td></tr>
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-green-700">GET</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/workday/employees/{id}</td><td class="px-5 py-2.5 text-gray-600">Get employee detail</td></tr>
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-green-700">GET</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/workday/org-chart/{id}</td><td class="px-5 py-2.5 text-gray-600">Get org chart</td></tr>
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-green-700">GET</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/greenhouse/requisitions</td><td class="px-5 py-2.5 text-gray-600">List requisitions</td></tr>
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-green-700">GET</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/greenhouse/requisitions/{id}</td><td class="px-5 py-2.5 text-gray-600">Req + candidates</td></tr>
+        <tr class="hover:bg-gray-50"><td class="px-5 py-2.5 font-mono text-xs text-yellow-700">POST</td><td class="px-5 py-2.5 font-mono text-xs">/integrations/webhooks/{source}</td><td class="px-5 py-2.5 text-gray-600">Receive webhook</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+async function sendTestWebhook() {
+  try {
+    var res = await fetch('/integrations/webhooks/workday', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        event: 'employee.updated',
+        employee_id: 'WD-1001',
+        changes: {title: 'Staff Software Engineer'},
+        timestamp: new Date().toISOString(),
+      }),
+    });
+    if (!res.ok) throw new Error('Failed');
+    var data = await res.json();
+    showToast('Test webhook sent! Event ID: ' + data.event_id.slice(0, 8));
+    setTimeout(function() { location.reload(); }, 1000);
+  } catch (err) {
+    showToast('Failed to send webhook', 'error');
+  }
+}
+</script>
+{% endblock %}
