@@ -12,6 +12,27 @@ DEFAULT_ONBOARDING_CHECKLIST = [
 ]
 
 
+def find_active_onboarding(trigger_name: str) -> list[str]:
+    """Find active (in_progress) onboarding runs whose trigger contains the given name.
+    Returns list of matching run IDs."""
+    try:
+        sb = get_supabase()
+        # Use ilike on the JSONB trigger field for fuzzy name matching
+        result = (
+            sb.table("workflow_runs")
+            .select("id")
+            .eq("workflow_type", "onboarding")
+            .eq("status", "in_progress")
+            .ilike("payload->>trigger", f"%{trigger_name[:100]}%")
+            .limit(5)
+            .execute()
+        )
+        return [str(r["id"]) for r in (result.data or [])]
+    except Exception as e:
+        logger.error("find_active_onboarding failed: %s", e)
+        return []
+
+
 def create_onboarding_run(trigger: str) -> str | None:
     """Create an onboarding workflow run with default checklist. Returns run_id."""
     try:

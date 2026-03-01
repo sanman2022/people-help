@@ -9,7 +9,7 @@ from config import BASE_DIR
 from middleware.auth import APIKeyMiddleware
 from middleware.rate_limit import RateLimitMiddleware
 from middleware.request_logging import RequestLoggingMiddleware
-from routers import analytics, events, integrations, knowledge, people_help, workflows
+from routers import analytics, events, integrations, knowledge, people_help, seed, workflows
 
 # ---------------------------------------------------------------------------
 # Structured logging — configure once at app startup
@@ -79,6 +79,7 @@ app.include_router(workflows.router, prefix="/workflows", tags=["workflows"])
 app.include_router(events.router, prefix="/events", tags=["events"])
 app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(integrations.router, prefix="/integrations", tags=["integrations"])
+app.include_router(seed.router, prefix="/seed", tags=["seed"])
 
 
 @app.get("/")
@@ -93,4 +94,4 @@ async def health():
     return {"status": "ok", "service": "people-help"}
 
 
-logger.info("People Help app initialized with %d routers", 6)
+logger.info("People Help app initialized with %d routers", 7)

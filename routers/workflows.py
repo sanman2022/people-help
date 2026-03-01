@@ -47,7 +47,7 @@ async def workflows_page(request: Request):
 
 @router.get("/simulate-offer-accepted", response_class=RedirectResponse)
 async def simulate_offer_accepted(request: Request):
-    create_onboarding_run(trigger="simulate")
+    create_onboarding_run(trigger="Jamie Lee — Senior Backend Engineer")
     return RedirectResponse(url="/workflows", status_code=302)
 
 
@@ -57,6 +57,8 @@ async def workflow_run_detail(request: Request, run_id: str):
         sb = get_supabase()
         run = sb.table("workflow_runs").select("*").eq("id", run_id).single().execute()
         status = run.data.get("status", "—") if run.data else "—"
+        payload = run.data.get("payload", {}) or {} if run.data else {}
+        trigger = payload.get("trigger", "—")
         checklist = (
             sb.table("workflow_checklist")
             .select("*")
@@ -68,6 +70,7 @@ async def workflow_run_detail(request: Request, run_id: str):
     except Exception as e:
         logger.error("Failed to load workflow run %s: %s", run_id, e)
         status = "error"
+        trigger = "—"
         checklist = type("R", (), {"data": []})()
         approvals = []
     return templates.TemplateResponse(
@@ -76,6 +79,7 @@ async def workflow_run_detail(request: Request, run_id: str):
         {
             "run_id": run_id,
             "status": status,
+            "trigger": trigger,
             "checklist": checklist.data or [],
             "approvals": approvals,
         },

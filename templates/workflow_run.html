@@ -9,7 +9,9 @@
     <div class="flex items-center justify-between mb-4">
       <div>
         <h1 class="text-xl font-bold text-gray-900">Onboarding Checklist</h1>
-        <p class="text-sm text-gray-500 mt-0.5">Run <span class="font-mono">{{ run_id[:8] }}</span></p>
+        <p class="text-sm text-gray-500 mt-0.5">
+          {% if trigger and trigger != "—" %}<span class="font-medium text-gray-700">{{ trigger }}</span> &middot; {% endif %}Run <span class="font-mono">{{ run_id[:8] }}</span>
+        </p>
       </div>
       <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
         {% if status == 'in_progress' %}bg-blue-100 text-blue-800{% elif status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">

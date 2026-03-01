@@ -18,7 +18,7 @@ from services.integrations import (
 )
 from services.rag import search_chunks
 from services.supabase_client import get_supabase
-from services.workflows import create_onboarding_run
+from services.workflows import create_onboarding_run, find_active_onboarding
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,18 @@ def start_onboarding(trigger: str) -> str:
     """Start the onboarding workflow for a new hire. This creates a checklist with
     standard onboarding tasks (I-9 forms, IT setup, benefits, team intro).
     Always confirm with the user BEFORE calling this tool."""
+    # Check for existing active onboarding runs with a similar name
+    existing = find_active_onboarding(trigger)
+    if existing:
+        ids = ", ".join(eid[:8] for eid in existing[:3])
+        return (
+            f"Found {len(existing)} active onboarding run(s) for a similar name "
+            f"(IDs: {ids}). No new run was created. "
+            f"Would you like to check the existing run, or should I create a new one anyway?"
+        )
     run_id = create_onboarding_run(trigger=trigger)
     if run_id:
-        return f"Onboarding workflow started for {trigger}. Track progress: [View Workflow](/workflows/run/{run_id})"
+        return f"Onboarding workflow started for {trigger}. Workflow run ID: {run_id}. The employee can track progress on the workflow page."
     return "Sorry, I couldn't start the onboarding workflow right now. Please try again."
 
 
@@ -343,8 +352,8 @@ Important rules:
    the workflow to the next step" or "This will reject the entire workflow run").
 7. For candidate matching, use match_candidates first to get the ranked list,
    then analyze_candidate for a deep-dive on a specific person.
-8. When tool results contain markdown links like [text](/path), include them
-   exactly as-is in your response so they render as clickable links.
+8. When sharing a workflow run ID, just include the UUID naturally in your response.
+   The UI will automatically turn it into a clickable link.
 """
 
 # ---------------------------------------------------------------------------

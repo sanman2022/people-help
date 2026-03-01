@@ -25,9 +25,20 @@ async def analytics_page(request: Request):
         cases_data = (sb.table("cases").select("id, status").execute()).data or []
         cases_total = len(cases_data)
         cases_open = sum(1 for c in cases_data if c.get("status") == "open")
+        # Onboarding runs
+        onboarding_data = (
+            sb.table("workflow_runs")
+            .select("id, status")
+            .eq("workflow_type", "onboarding")
+            .execute()
+        ).data or []
+        onboarding_total = len(onboarding_data)
+        onboarding_in_progress = sum(1 for r in onboarding_data if r.get("status") == "in_progress")
+        onboarding_completed = sum(1 for r in onboarding_data if r.get("status") == "completed")
     except Exception as e:
         logger.error("Failed to load analytics: %s", e)
         questions_count = feedback_yes = feedback_no = events_count = cases_open = cases_total = 0
+        onboarding_total = onboarding_in_progress = onboarding_completed = 0
     return templates.TemplateResponse(
         request,
         "analytics.html",
@@ -38,5 +49,8 @@ async def analytics_page(request: Request):
             "events_count": events_count,
             "cases_open": cases_open,
             "cases_total": cases_total,
+            "onboarding_total": onboarding_total,
+            "onboarding_in_progress": onboarding_in_progress,
+            "onboarding_completed": onboarding_completed,
         },
     )

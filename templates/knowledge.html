@@ -4,14 +4,26 @@
 {% block content %}
 <div class="max-w-2xl">
   <h1 class="text-2xl font-bold text-gray-900">Knowledge Base</h1>
-  <p class="text-sm text-gray-500 mt-1 mb-1">Ask a question; get an answer grounded in policy and process docs, with citations.</p>
-  <p class="text-xs text-gray-400 mb-4">First time? <a href="/knowledge/seed" class="text-brand-600 hover:underline">Seed demo docs</a> (ingests 3 policy snippets so RAG has content).</p>
+  <p class="text-sm text-gray-500 mt-1 mb-4">Ask a question; get an answer grounded in policy and process docs, with citations.</p>
 
-  <form method="post" action="/knowledge/ask" class="flex gap-2 mb-6">
+  <form id="kb-form" method="post" action="/knowledge/ask" class="flex gap-2 mb-3">
     <input type="text" name="query" placeholder="e.g. How do I request PTO?" required
            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent">
     <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">Ask</button>
   </form>
+
+  <!-- Suggested questions -->
+  <div class="flex gap-2 flex-wrap mb-6">
+    <button onclick="kbAsk('How do I request PTO?')" class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">How do I request PTO?</button>
+    <button onclick="kbAsk('What is the expense reimbursement process?')" class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">Expense reimbursement process</button>
+    <button onclick="kbAsk('What are the interview guidelines?')" class="text-xs px-3 py-1.5 bg-white border border-gray-200 rounded-full text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-colors">Interview guidelines</button>
+  </div>
+  <script>
+  function kbAsk(q) {
+    document.querySelector('#kb-form input[name="query"]').value = q;
+    document.getElementById('kb-form').submit();
+  }
+  </script>
 
   {% if answer %}
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
