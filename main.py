@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 
 from fastapi import FastAPI
@@ -46,10 +47,14 @@ app = FastAPI(
 # 1. Request logging (outermost — logs every request with timing)
 app.add_middleware(RequestLoggingMiddleware)
 
-# 2. CORS — allow frontend origins
+# 2. CORS — allow frontend origins (configurable for deployment)
+CORS_ORIGINS = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:8000,http://localhost:8000",
+).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

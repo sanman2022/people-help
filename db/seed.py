@@ -12,12 +12,13 @@ What it does:
   5. Creates demo cases, onboarding runs, approvals, events, and feedback
 """
 
+import os
 import sys
 import time
 
 import httpx
 
-BASE = "http://127.0.0.1:8000"
+BASE = os.environ.get("SEED_BASE_URL", "http://127.0.0.1:8000")
 CLIENT = httpx.Client(timeout=120, follow_redirects=True)
 
 

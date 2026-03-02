@@ -1,17 +1,21 @@
 import logging
 
 from openai import AsyncOpenAI
+from pinecone import Pinecone
 
 from config import (
     OPENAI_API_KEY,
     OPENAI_CHAT_MODEL,
     OPENAI_EMBEDDING_MODEL,
+    PINECONE_API_KEY,
+    PINECONE_INDEX_NAME,
 )
 from services.supabase_client import get_supabase
 
 logger = logging.getLogger(__name__)
 
 _openai_client: AsyncOpenAI | None = None
+_pinecone_index = None
 
 
 def _get_openai() -> AsyncOpenAI:
@@ -19,6 +23,15 @@ def _get_openai() -> AsyncOpenAI:
     if _openai_client is None:
         _openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
     return _openai_client
+
+
+def _get_pinecone_index():
+    """Lazy singleton for the Pinecone index."""
+    global _pinecone_index
+    if _pinecone_index is None:
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        _pinecone_index = pc.Index(PINECONE_INDEX_NAME)
+    return _pinecone_index
 
 
 async def get_embedding(text: str) -> list[float]:
@@ -32,18 +45,24 @@ async def get_embedding(text: str) -> list[float]:
 
 
 async def search_chunks(query: str, top_k: int = 5) -> list[dict]:
+    """Search for relevant document chunks using Pinecone vector similarity."""
     embedding = await get_embedding(query)
     try:
-        sb = get_supabase()
-        result = sb.rpc(
-            "match_document_chunks",
-            {
-                "query_embedding": embedding,
-                "match_threshold": 0.3,
-                "match_count": top_k,
-            },
-        ).execute()
-        return result.data or []
+        index = _get_pinecone_index()
+        result = index.query(vector=embedding, top_k=top_k, include_metadata=True)
+        chunks = []
+        for match in result.get("matches", []):
+            if match.get("score", 0.0) < 0.3:
+                continue
+            meta = match.get("metadata", {})
+            chunks.append({
+                "id": match["id"],
+                "document_id": meta.get("document_id", ""),
+                "content": meta.get("content", ""),
+                "chunk_index": meta.get("chunk_index", 0),
+                "similarity": match.get("score", 0.0),
+            })
+        return chunks
     except Exception as e:
         logger.error("Vector search failed: %s", e)
         return []
@@ -137,6 +156,7 @@ def chunk_text(text: str, max_chars: int = 800) -> list[str]:
 
 
 async def ingest_document(title: str, content: str, source_url: str | None = None) -> str:
+    """Ingest a document: metadata to Supabase, vectors to Pinecone."""
     try:
         sb = get_supabase()
         doc = (
@@ -147,17 +167,27 @@ async def ingest_document(title: str, content: str, source_url: str | None = Non
         if not doc.data or len(doc.data) == 0:
             return ""
         document_id = str(doc.data[0]["id"])
+
+        # Chunk, embed, and upsert vectors to Pinecone
+        index = _get_pinecone_index()
         chunks = chunk_text(content)
+        vectors = []
         for i, chunk in enumerate(chunks):
             embedding = await get_embedding(chunk)
-            sb.table("document_chunks").insert(
-                {
-                    "document_id": document_id,
+            vectors.append({
+                "id": f"{document_id}_{i}",
+                "values": embedding,
+                "metadata": {
                     "content": chunk,
-                    "embedding": embedding,
+                    "document_id": document_id,
                     "chunk_index": i,
-                }
-            ).execute()
+                    "title": title,
+                },
+            })
+        if vectors:
+            index.upsert(vectors=vectors)
+            logger.info("Upserted %d vectors for document '%s'", len(vectors), title)
+
         return document_id
     except Exception as e:
         logger.error("Document ingestion failed: %s", e)

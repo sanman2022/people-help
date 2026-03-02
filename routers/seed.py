@@ -50,6 +50,16 @@ async def reset_all_tables():
             cleaned += 1
         except Exception as e:
             logger.warning("Failed to clean table %s: %s", table, e)
+
+    # Clear Pinecone index (vector store)
+    try:
+        from services.rag import _get_pinecone_index
+        index = _get_pinecone_index()
+        index.delete(delete_all=True)
+        logger.info("Pinecone index cleared")
+    except Exception as e:
+        logger.warning("Failed to clear Pinecone index: %s", e)
+
     return {"tables_cleaned": cleaned}
 
 
