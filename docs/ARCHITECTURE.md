@@ -38,7 +38,7 @@ HR teams at scale face a fragmented tooling landscape: employees navigate multip
     │  ┌──────────────────────┐  ┌───────────────────────────┐  │
     │  │   LangChain Agent    │  │     RAG Pipeline          │  │
     │  │   (15 tools)         │  │  embed → search → cite    │  │
-    │  │   + memory           │  │  (pgvector similarity)    │  │
+    │  │   + memory           │  │  (Pinecone similarity)    │  │
     │  │   + human-in-loop    │  └───────────────────────────┘  │
     │  └──────────┬───────────┘                                 │
     │             │                                             │
@@ -50,10 +50,16 @@ HR teams at scale face a fragmented tooling landscape: employees navigate multip
     └─────────────────────────────┼────────────────────────────┘
                                   │
     ┌─────────────────────────────▼────────────────────────────┐
-    │                  Supabase (PostgreSQL + pgvector)          │
-    │  13 tables: documents, chunks, questions, feedback,       │
-    │  cases, workflow_runs, checklist, approvals, events,      │
+    │                Supabase (PostgreSQL)                       │
+    │  13 tables: documents, questions, feedback, cases,        │
+    │  workflow_runs, checklist, approvals, events,             │
     │  conversations, messages, connectors, definitions         │
+    └──────────────────────────────────────────────────────────┘
+                                  │
+    ┌─────────────────────────────▼────────────────────────────┐
+    │              Pinecone (Serverless Vector DB)               │
+    │  ~50 vectors (1536-dim) — HR policy document chunks       │
+    │  Cosine similarity search for RAG retrieval               │
     └──────────────────────────────────────────────────────────┘
                                   │
     ┌─────────────────────────────▼────────────────────────────┐
@@ -98,9 +104,9 @@ flowchart TB
         RAG["RAG Pipeline<br/>embed → search → cite"]
     end
 
-    subgraph data ["Supabase (PostgreSQL + pgvector)"]
-        DB["13 Tables<br/>documents · chunks · cases<br/>workflow_runs · approvals<br/>conversations · events · connectors"]
-        Vectors["pgvector<br/>Cosine Similarity Search"]
+    subgraph data ["Data Layer"]
+        DB["Supabase (PostgreSQL)<br/>13 Tables: documents · cases<br/>workflow_runs · approvals<br/>conversations · events · connectors"]
+        Vectors["Pinecone (Serverless)<br/>Vector Search<br/>~50 vectors · 1536-dim · cosine"]
     end
 
     subgraph external ["External APIs"]
@@ -117,6 +123,7 @@ flowchart TB
     T_Knowledge --> RAG
     RAG --> Vectors
     RAG --> OpenAI
+    Vectors -.- DB
     tools --> DB
     T_Workday --> MockWorkday
     T_Greenhouse --> MockGreenhouse
@@ -182,7 +189,7 @@ User message
 | Table | Purpose | Key Fields |
 |-------|---------|------------|
 | `documents` | Source HR policy docs | title, content |
-| `document_chunks` | Chunked text with embeddings | content, embedding (vector 1536), document_id |
+| `document_chunks` | Legacy (vectors now in Pinecone) | content, document_id |
 | `questions` | Logged KB questions | query, answer_text, sources_json |
 | `feedback` | Helpful/not helpful | question_id, helpful (boolean) |
 | `cases` | Support tickets | subject, description, status |
@@ -198,9 +205,11 @@ User message
 ### RAG Pipeline
 
 ```
-Ingest: Document → chunk (500 char paragraphs) → embed (text-embedding-3-small) → store in pgvector
-Query:  User question → embed → cosine similarity search (top 5) → LLM synthesizes answer with citations
+Ingest: Document → chunk (~800 char paragraphs) → embed (text-embedding-3-small) → metadata to Supabase, vectors to Pinecone
+Query:  User question → embed → Pinecone cosine similarity search (top 5, threshold 0.3) → LLM synthesizes answer with citations
 ```
+
+Document metadata (title, full text) lives in Supabase. Chunked embeddings (1536-dim vectors + content metadata) live in Pinecone serverless. This split keeps Supabase on the free tier while using Pinecone's purpose-built vector search.
 
 ---
 
@@ -228,7 +237,7 @@ A single `npm run seed` command resets all tables and populates realistic demo d
 | **Rate Limiting** | Per-IP sliding window on LLM endpoints (configurable, default 20/min) |
 | **Input Validation** | Pydantic models on all API endpoints |
 | **Logging** | Structured request logging with unique request IDs |
-| **CORS** | Configured for local development origins |
+| **CORS** | Configurable via `CORS_ORIGINS` env var for local and production origins |
 | **Tests** | 84 tests across 6 files (API, integrations, RAG, models, middleware, candidate intelligence) |
 
 ---
@@ -255,10 +264,11 @@ If evolving People Help from demo to production:
 | Layer | Choice | Rationale |
 |-------|--------|-----------|
 | **App Framework** | FastAPI | Async-native, auto-generated OpenAPI docs, Pydantic integration |
-| **Database** | Supabase (PostgreSQL + pgvector) | Managed Postgres with vector search, REST API, real-time subscriptions |
+| **Database** | Supabase (PostgreSQL) | Managed Postgres for relational data, REST API, real-time subscriptions |
+| **Vector DB** | Pinecone (Serverless) | Purpose-built vector search on free tier; 1536-dim cosine index for RAG |
 | **LLM** | OpenAI (gpt-4o-mini) | Best cost/quality ratio for tool-calling agents |
 | **Embeddings** | text-embedding-3-small | 1536-dim, good quality, low cost |
 | **Agent Framework** | LangChain | Rapid prototyping with tool abstractions; planned migration to LangGraph |
 | **UI** | Jinja2 + Tailwind CSS | Server-rendered for simplicity; CDN Tailwind for rapid styling |
 | **Charts** | Chart.js | Lightweight, no build step required |
-| **Deploy** | Render | One-click deploy from GitHub, `render.yaml` included |
+| **Deploy** | Railway | GitHub-connected deploy with `Procfile` + `railway.toml`, health checks, auto-restart |

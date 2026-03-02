@@ -4,7 +4,7 @@
 
 People Help demonstrates how agentic AI can transform the way organizations deliver HR services. Instead of navigating Workday for employee data, Greenhouse for hiring, a wiki for policy answers, and a ticketing system for support — employees get one intelligent front door that understands context, takes action, and learns.
 
-> **Stack:** FastAPI · Supabase (Postgres + pgvector) · OpenAI · LangChain · Tailwind CSS · Chart.js
+> **Stack:** FastAPI · Supabase (Postgres) · Pinecone (vector search) · OpenAI · LangChain · Tailwind CSS · Chart.js
 
 ---
 
@@ -73,7 +73,8 @@ Employee → People Concierge (AI Agent) → 15 Tools
                                            ├── Workday (employee lookup, org chart)
                                            ├── Greenhouse (requisitions, candidates)
                                            └── Intelligence (AI candidate matching)
-                                         → Supabase (13 tables + pgvector)
+                                         → Supabase (13 tables — relational data)
+                                         → Pinecone (vector search — serverless)
                                          → OpenAI (embeddings + reasoning)
 ```
 
@@ -136,21 +137,23 @@ If evolving People Help from prototype to production:
    pip install -r requirements.txt
    ```
 
-2. **Supabase** — Create a project at [supabase.com](https://supabase.com), then run `db/schema.sql` in the SQL Editor (creates all 13 tables + pgvector).
+2. **Supabase** — Create a project at [supabase.com](https://supabase.com), then run `db/schema.sql` in the SQL Editor (creates all 13 tables).
 
-3. **Environment variables**
+3. **Pinecone** — Create a free account at [pinecone.io](https://www.pinecone.io). Create a serverless index named `people-help` with 1536 dimensions and cosine metric (AWS us-east-1).
+
+4. **Environment variables**
    ```bash
    cp .env.example .env
    ```
-   Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `OPENAI_API_KEY`.
+   Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `PINECONE_API_KEY`, and `PINECONE_INDEX_NAME`.
 
-4. **Run**
+5. **Run**
    ```bash
    npm start
    ```
    Open http://127.0.0.1:8000/people-help
 
-5. **Seed demo data** (server must be running)
+6. **Seed demo data** (server must be running)
    ```bash
    npm run seed
    ```
@@ -166,7 +169,7 @@ npm test
 
 ### Deploy
 
-`render.yaml` is included for one-click Render deploys. Set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY` as env vars.
+Configured for Railway deployment (`Procfile` + `railway.toml`). Connect your GitHub repo and set environment variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `OPENAI_API_KEY`, `PINECONE_API_KEY`, `PINECONE_INDEX_NAME`, `CORS_ORIGINS`.
 
 ---
 
@@ -181,7 +184,7 @@ npm test
 ├── services/
 │   ├── agent.py             # LangChain agent (15 tools)
 │   ├── candidate_intelligence.py
-│   ├── rag.py               # Embedding + vector search
+│   ├── rag.py               # Embedding + Pinecone vector search
 │   ├── approvals.py         # Multi-step approval engine
 │   ├── integrations.py      # Mock Workday/Greenhouse
 │   └── workflows.py         # Onboarding orchestration
@@ -190,6 +193,8 @@ npm test
 ├── db/
 │   ├── schema.sql           # Full schema (13 tables)
 │   └── seed.py              # Demo data seeder
+├── Procfile                  # Railway deployment
+├── railway.toml              # Railway config
 └── docs/
     └── ARCHITECTURE.md       # Full design document
 ```
