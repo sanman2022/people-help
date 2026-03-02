@@ -12,7 +12,7 @@ from services.approvals import (
     seed_definitions,
 )
 from services.supabase_client import get_supabase
-from services.workflows import create_onboarding_run
+from services.workflows import create_onboarding_run, find_active_onboarding
 from templates_ctx import templates
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,15 @@ async def workflows_page(request: Request):
 
 
 @router.get("/simulate-offer-accepted", response_class=RedirectResponse)
-async def simulate_offer_accepted(request: Request):
-    create_onboarding_run(trigger="Jamie Lee — Senior Backend Engineer")
+async def simulate_offer_accepted(request: Request, trigger: str = "New Hire"):
+    trigger = trigger.strip()[:200]  # Sanitize
+    # Check for duplicate — if an active run exists, redirect to it instead
+    existing = find_active_onboarding(trigger)
+    if existing:
+        return RedirectResponse(url=f"/workflows/run/{existing[0]}?duplicate=1", status_code=302)
+    run_id = create_onboarding_run(trigger=trigger)
+    if run_id:
+        return RedirectResponse(url=f"/workflows/run/{run_id}?new=1", status_code=302)
     return RedirectResponse(url="/workflows", status_code=302)
 
 

@@ -253,6 +253,7 @@ MOCK_CANDIDATES = [
         "education": "B.S. Computer Science, UC Berkeley",
         "skills": ["Python", "Go", "PostgreSQL", "Redis", "Docker", "Kubernetes", "REST API design", "microservices"],
         "resume_summary": "6 years building payment processing APIs at Stripe. Led migration from monolith to microservices handling 50K+ requests/sec. Strong in Python, Go, and PostgreSQL. Built real-time event pipeline with Kafka. Experienced with Docker, Kubernetes, and CI/CD pipelines on AWS.",
+        "demo_match_pct": 81,
     },
     {
         "candidate_id": "C-202",
@@ -267,6 +268,7 @@ MOCK_CANDIDATES = [
         "education": "M.S. Computer Science, Stanford",
         "skills": ["Python", "FastAPI", "PostgreSQL", "Redis", "Docker", "AWS", "system design", "CI/CD", "GraphQL", "event-driven architecture"],
         "resume_summary": "8 years of backend experience, currently at Airbnb building internal platform APIs with FastAPI and PostgreSQL. Designed the payments reconciliation service processing $2B+ annually. Expert in system design, event-driven architecture, and distributed systems. Previously at Google working on Cloud APIs.",
+        "demo_match_pct": 92,
     },
     {
         "candidate_id": "C-203",
@@ -281,6 +283,7 @@ MOCK_CANDIDATES = [
         "education": "B.S. Information Systems, NYU",
         "skills": ["JavaScript", "Node.js", "Python", "PostgreSQL", "React", "Docker", "REST APIs"],
         "resume_summary": "4 years as a full-stack developer at Acme Corp. Primarily focused on Node.js and React but has some Python experience. Built internal CRUD APIs and admin dashboards. Transitioning to backend-focused roles. Familiar with Docker but limited experience with CI/CD and system design at scale.",
+        "demo_match_pct": 48,
     },
 
     # GH-402 — Product Designer
@@ -297,6 +300,7 @@ MOCK_CANDIDATES = [
         "education": "BFA Graphic Design, RISD",
         "skills": ["Figma", "user research", "interaction design", "design systems", "prototyping", "accessibility (WCAG)", "motion design"],
         "resume_summary": "5 years designing consumer and internal tools at Spotify. Led redesign of creator analytics dashboard used by 1M+ artists. Expert in Figma, built Spotify's internal design system. Strong user research skills — ran 40+ usability studies. Passionate about accessibility; certified WCAG specialist.",
+        "demo_match_pct": 88,
     },
     {
         "candidate_id": "C-205",
@@ -311,6 +315,7 @@ MOCK_CANDIDATES = [
         "education": "M.Des. Interaction Design, CMU",
         "skills": ["Figma", "user research", "interaction design", "prototyping", "data visualization", "HTML/CSS", "Framer"],
         "resume_summary": "4 years designing enterprise tools at Meta. Designed the internal HR portal used by 80K+ employees. Strong in data visualization and prototyping. Proficient in HTML/CSS for dev handoff. Built interactive Framer prototypes for stakeholder demos. Experience with design systems and component libraries.",
+        "demo_match_pct": 79,
     },
     {
         "candidate_id": "C-208",
@@ -325,6 +330,7 @@ MOCK_CANDIDATES = [
         "education": "B.A. Psychology, UCLA",
         "skills": ["Figma", "Sketch", "user research", "wireframing", "prototyping"],
         "resume_summary": "3 years of freelance UX design for small startups. Strong user research background from psychology degree. Experienced with Figma and Sketch. Primarily focused on mobile app design. Limited experience with design systems and accessibility. Portfolio shows consumer-focused work, no enterprise or internal tools experience.",
+        "demo_match_pct": 52,
     },
 
     # GH-403 — HR Business Partner
@@ -341,6 +347,7 @@ MOCK_CANDIDATES = [
         "education": "MBA, Wharton",
         "skills": ["HR consulting", "organizational design", "change management", "data-driven HR", "performance management"],
         "resume_summary": "5 years as an HR consultant at Deloitte advising Fortune 500 companies on org restructuring and performance management. Strong analytical skills and data-driven approach to people strategy. MBA from Wharton with HR concentration. Limited hands-on HRBP experience — mostly advisory roles. No direct Workday experience.",
+        "demo_match_pct": 63,
     },
     {
         "candidate_id": "C-207",
@@ -355,6 +362,7 @@ MOCK_CANDIDATES = [
         "education": "B.A. Human Resources, Penn State",
         "skills": ["employee relations", "recruiting", "onboarding", "HRIS basics", "benefits administration"],
         "resume_summary": "3 years as an HR generalist at a 200-person startup. Handles recruiting, onboarding, and employee relations. Familiar with basic HRIS administration. No experience with organizational design, performance management frameworks, or strategic HR business partnering. Looking to step up to a more strategic role.",
+        "demo_match_pct": 38,
     },
     {
         "candidate_id": "C-209",
@@ -369,6 +377,7 @@ MOCK_CANDIDATES = [
         "education": "M.S. Industrial/Organizational Psychology, Columbia",
         "skills": ["HR business partnering", "performance management", "organizational design", "employee relations", "people analytics", "Workday", "change management", "DEI programs"],
         "resume_summary": "8 years in progressive HRBP roles, currently at Netflix supporting Engineering and Product (500+ employees). Led implementation of new performance management framework adopted company-wide. Expert in Workday, people analytics, and organizational design. Drove DEI initiatives that improved underrepresented hiring by 35%. Previously at Google as HRBP for Cloud division.",
+        "demo_match_pct": 91,
     },
 
     # GH-404 — Data Analyst (closed)
@@ -385,6 +394,7 @@ MOCK_CANDIDATES = [
         "education": "M.S. Statistics, Columbia",
         "skills": ["SQL", "Python", "Tableau", "financial modeling", "data storytelling", "dbt", "Snowflake"],
         "resume_summary": "3 years analyzing financial data at Bloomberg. Built executive dashboards in Tableau tracking $500M+ in revenue. Expert SQL and Python for data transformation. Experience with dbt and Snowflake. Strong statistical modeling background from Columbia. Excellent data storytelling — presented weekly to C-suite.",
+        "demo_match_pct": 87,
     },
     {
         "candidate_id": "C-211",
@@ -399,6 +409,7 @@ MOCK_CANDIDATES = [
         "education": "B.S. Economics, NYU",
         "skills": ["SQL", "Excel", "Tableau", "financial analysis"],
         "resume_summary": "1 year at Deloitte in advisory analytics. Proficient in SQL and Tableau for client reporting. Strong Excel skills for financial modeling. Economics background with coursework in statistics. Looking to transition into a dedicated data analyst role.",
+        "demo_match_pct": 41,
     },
     {
         "candidate_id": "C-212",
@@ -413,6 +424,7 @@ MOCK_CANDIDATES = [
         "education": "M.S. Data Science, Georgia Tech",
         "skills": ["SQL", "Python", "Looker", "financial modeling", "Snowflake", "statistical modeling"],
         "resume_summary": "2 years in financial data analytics at JPMorgan Chase. Built Looker dashboards for risk reporting. Python for ETL pipelines and statistical modeling. Snowflake experience for large-scale data warehousing. Georgia Tech data science program included ML and advanced statistics.",
+        "demo_match_pct": 72,
     },
 ]
 

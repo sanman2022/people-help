@@ -143,7 +143,12 @@ async def rank_candidates_for_req(req_id: str) -> dict:
 
     scored = []
     for cand in candidates:
-        score = await score_candidate_match(req, cand)
+        # Use pre-seeded demo scores when available (fast, deterministic);
+        # fall back to live embedding scoring otherwise.
+        if "demo_match_pct" in cand:
+            score = cand["demo_match_pct"] / 100.0
+        else:
+            score = await score_candidate_match(req, cand)
         scored.append({
             "candidate": cand,
             "match_score": score,

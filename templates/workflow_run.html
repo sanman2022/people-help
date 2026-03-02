@@ -15,7 +15,7 @@
       </div>
       <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
         {% if status == 'in_progress' %}bg-blue-100 text-blue-800{% elif status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-        {{ status }}
+        {{ status | replace("_", " ") | title }}
       </span>
     </div>
 
@@ -56,6 +56,35 @@
 </div>
 
 <!-- Approval steps -->
+<!-- Stage-aware next step guide -->
+{% set checklist_done = checklist | selectattr('done') | list | length %}
+{% set checklist_total = checklist | length %}
+{% set pending_approvals = approvals | selectattr('status', 'equalto', 'pending') | list %}
+{% set rejected_approvals = approvals | selectattr('status', 'equalto', 'rejected') | list %}
+
+{% if status == 'in_progress' %}
+<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mt-4">
+  <p class="text-sm font-medium text-amber-800">
+    {% if rejected_approvals %}
+      Approval rejected — this onboarding run is blocked. Review the rejection notes below.
+    {% elif pending_approvals %}
+      {% set next_approval = pending_approvals | first %}
+      Next step: <strong>{{ next_approval.step_name | replace("_", " ") | title }}</strong> ({{ next_approval.approver_role }}) — click Approve or Reject below.
+    {% elif checklist_done < checklist_total %}
+      All approvals complete. {{ checklist_total - checklist_done }} checklist task{{ "s" if (checklist_total - checklist_done) > 1 else "" }} remaining — check them off above.
+    {% else %}
+      All tasks and approvals complete. This run can be marked as completed.
+    {% endif %}
+  </p>
+</div>
+{% elif status == 'completed' %}
+<div class="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
+  <p class="text-sm font-medium text-green-800">
+    Onboarding complete — all tasks and approvals finished.
+  </p>
+</div>
+{% endif %}
+
 {% if approvals %}
 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mt-4">
   <h2 class="text-base font-semibold text-gray-900 mb-3">Approval Pipeline</h2>
@@ -88,7 +117,7 @@
         {% if a.status == 'approved' %}bg-green-100 text-green-800
         {% elif a.status == 'rejected' %}bg-red-100 text-red-800
         {% else %}bg-yellow-100 text-yellow-800{% endif %}">
-        {{ a.status }}
+        {{ a.status | replace("_", " ") | title }}
       </span>
       <!-- Action buttons for pending -->
       {% if a.status == 'pending' %}
@@ -110,6 +139,18 @@
 {% endif %}
 
 <script>
+// Show toast based on how we arrived
+var params = new URLSearchParams(window.location.search);
+if (params.get('new') === '1') {
+  setTimeout(function() { showToast('Onboarding run created — checklist and approval pipeline ready'); }, 200);
+} else if (params.get('duplicate') === '1') {
+  setTimeout(function() { showToast('An active onboarding run already exists for this person — showing the existing run', 'info'); }, 200);
+}
+// Clean up URL
+if (params.get('new') || params.get('duplicate')) {
+  history.replaceState(null, '', window.location.pathname);
+}
+
 var total = {{ checklist | length }};
 
 async function toggleItem(itemId, checked) {

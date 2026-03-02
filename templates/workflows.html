@@ -2,15 +2,9 @@
 {% block title %}Workflows & Cases{% endblock %}
 {% block nav_workflows %}text-brand-600 bg-brand-50{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <h1 class="text-2xl font-bold text-gray-900">Workflows & Cases</h1>
-    <p class="text-sm text-gray-500 mt-1">Track support cases and onboarding workflows.</p>
-  </div>
-  <a href="/workflows/simulate-offer-accepted"
-     class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-    + Simulate offer accepted
-  </a>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Workflows & Cases</h1>
+  <p class="text-sm text-gray-500 mt-1">Track support cases and onboarding workflows.</p>
 </div>
 
 <!-- Cases -->
@@ -37,7 +31,7 @@
           <td class="px-5 py-3">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
               {% if c.status == 'open' %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
-              {{ c.status }}
+              {{ c.status | replace("_", " ") | title }}
             </span>
           </td>
           <td class="px-5 py-3 text-sm text-gray-500">{{ c.created_at[:10] if c.created_at else "—" }}</td>
@@ -53,8 +47,15 @@
 
 <!-- Onboarding runs -->
 <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-  <div class="px-5 py-3 border-b border-gray-100">
-    <h2 class="text-base font-semibold text-gray-900">Onboarding Runs</h2>
+  <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div>
+      <h2 class="text-base font-semibold text-gray-900">Onboarding Runs</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Each run is triggered by an offer-accepted event from Greenhouse.</p>
+    </div>
+    <button onclick="simulateOffer()"
+       class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap">
+      + Simulate offer accepted
+    </button>
   </div>
   {% if runs %}
   <div class="overflow-x-auto">
@@ -77,7 +78,7 @@
           <td class="px-5 py-3">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
               {% if r.status == 'in_progress' %}bg-blue-100 text-blue-800{% elif r.status == 'completed' %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-              {{ r.status }}
+              {{ r.status | replace("_", " ") | title }}
             </span>
           </td>
           <td class="px-5 py-3 text-sm text-gray-500">{{ r.created_at[:10] if r.created_at else "—" }}</td>
@@ -90,4 +91,12 @@
   <p class="px-5 py-8 text-sm text-gray-400 text-center">No onboarding runs yet. Click "Simulate offer accepted" to create one.</p>
   {% endif %}
 </div>
+
+<script>
+function simulateOffer() {
+  var name = prompt('New hire name and role:\n(e.g. "Taylor Kim — Frontend Engineer")');
+  if (!name || !name.trim()) return;
+  window.location.href = '/workflows/simulate-offer-accepted?trigger=' + encodeURIComponent(name.trim());
+}
+</script>
 {% endblock %}

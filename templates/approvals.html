@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Approvals{% endblock %}
-{% block nav_workflows %}text-brand-600 bg-brand-50{% endblock %}
+{% block nav_approvals %}text-brand-600 bg-brand-50{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-6">
   <div>
@@ -8,10 +8,6 @@
     <p class="text-sm text-gray-500 mt-1">Approvals assigned to your role. In production, filtered by role (manager, HR, IT).</p>
   </div>
   <div class="flex gap-2">
-    <a href="/workflows/definitions/seed"
-       class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-      Seed definitions
-    </a>
     <a href="/workflows"
        class="text-sm text-brand-600 hover:underline px-4 py-2">
       &larr; Workflows
@@ -29,7 +25,7 @@
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-1">
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-            pending
+            Pending
           </span>
           <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
             {{ a.approver_role }}
