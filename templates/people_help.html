@@ -89,6 +89,14 @@ async function sendMessage() {
   inputEl.focus();
 }
 
+function simpleMarkdown(html) {
+  // Bold: **text** → <strong>
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Lines starting with "- " → bullet list items
+  html = html.replace(/^- (.+)$/gm, '<span class="flex gap-2"><span class="text-gray-400">•</span><span>$1</span></span>');
+  return html;
+}
+
 function renderLinks(text) {
   // Escape HTML first
   var s = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -124,7 +132,7 @@ function appendMessage(role, text) {
     div.textContent = text;
   } else {
     div.className = 'max-w-[85%] self-start bg-gray-100 text-gray-800 px-4 py-2.5 rounded-2xl rounded-bl-md text-sm leading-relaxed whitespace-pre-wrap';
-    div.innerHTML = renderLinks(text);
+    div.innerHTML = simpleMarkdown(renderLinks(text));
   }
   messagesEl.appendChild(div);
   messagesEl.scrollTop = messagesEl.scrollHeight;
