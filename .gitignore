@@ -20,8 +20,10 @@ env/
 htmlcov/
 .coverage
 
-# Node
+# Node (local convenience only — must not deploy to Railway)
 node_modules/
+package.json
+package-lock.json
 
 # IDE
 .vscode/
